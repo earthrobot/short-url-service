@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
+
+	"github.com/go-chi/chi"
 )
 
 type DataStorage struct {
@@ -49,39 +50,25 @@ func createShortLinkHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func getOriginalLinkHandler(w http.ResponseWriter, r *http.Request) {
-	parts := strings.Split(r.URL.Path, "/")
-	if len(parts) < 2 {
-		http.Error(w, "Invalid URL", http.StatusBadRequest)
-		return
-	}
-	shortLink := parts[1]
-	link, ok := dataStorage.Get(shortLink)
+	linkHash := chi.URLParam(r, "linkHash")
+
+	link, ok := dataStorage.Get(linkHash)
 	if !ok {
-		http.Error(w, "URL not found", http.StatusBadRequest)
+		http.Error(w, "URL not found", http.StatusNotFound)
 		return
 	}
+
 	w.Header().Set("Location", link)
-	w.WriteHeader(307)
-}
-
-func mainHandle(w http.ResponseWriter, r *http.Request) {
-
-	if r.Method == http.MethodPost {
-
-		createShortLinkHandler(w, r)
-
-	} else if r.Method == http.MethodGet {
-
-		getOriginalLinkHandler(w, r)
-	}
+	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
 func main() {
-	mux := http.NewServeMux()
+	r := chi.NewRouter()
 
-	mux.HandleFunc(`/`, mainHandle)
+	r.Post("/", createShortLinkHandler)
+	r.Get("/{linkHash}", getOriginalLinkHandler)
 
-	err := http.ListenAndServe(`:8080`, mux)
+	err := http.ListenAndServe(":8080", r)
 	if err != nil {
 		panic(err)
 	}
