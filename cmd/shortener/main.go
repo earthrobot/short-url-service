@@ -33,11 +33,6 @@ func mainHandle(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == http.MethodPost {
 
-		if r.Header.Get("Content-Type") != "text/plain" {
-			http.Error(w, "Unsupported Media Type", http.StatusBadRequest)
-			return
-		}
-
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, "Failed to read request body", http.StatusBadRequest)
