@@ -24,16 +24,16 @@ func Load() {
 	flag.Parse()
 
 	// проставляем из флагов или энвов если есть
-	if *appHostFlag != "" {
-		ConfSet.AppHost = *appHostFlag
-	} else if os.Getenv("SERVER_ADDRESS") != "" {
+	if os.Getenv("SERVER_ADDRESS") != "" {
 		ConfSet.AppHost = os.Getenv("SERVER_ADDRESS")
+	} else if *appHostFlag != "" {
+		ConfSet.AppHost = *appHostFlag
 	}
 
-	if *urlHostFlag != "" {
-		ConfSet.URLHost = *urlHostFlag
-	} else if os.Getenv("BASE_URL") != "" {
+	if os.Getenv("BASE_URL") != "" {
 		ConfSet.URLHost = os.Getenv("BASE_URL")
+	} else if *urlHostFlag != "" {
+		ConfSet.URLHost = *urlHostFlag
 	}
 
 }
