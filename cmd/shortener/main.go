@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/earthrobot/short-url-service/config"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -44,7 +45,7 @@ func (s *Server) createShortLinkHandler(w http.ResponseWriter, r *http.Request) 
 	s.DB.Set(shortLink, link)
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
-	returnLink := "http://localhost:8080/" + shortLink
+	returnLink := config.ConfSet.UrlHost + "/" + shortLink
 	w.Write([]byte(returnLink))
 }
 
@@ -62,11 +63,15 @@ func (s *Server) getOriginalLinkHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 func main() {
+
+	// инициируем конфиг
+	config.Load()
+
 	s := CreateNewServer()
 
 	s.MountHandlers()
 
-	err := http.ListenAndServe(":8080", s.Router)
+	err := http.ListenAndServe(config.ConfSet.AppHost, s.Router)
 	if err != nil {
 		panic(err)
 	}

@@ -53,7 +53,7 @@ func TestGetOriginalLinkHandler(t *testing.T) {
 
 	s.MountHandlers()
 
-	reqPost, _ := http.NewRequest("POST", "http://localhost:8080/", strings.NewReader(link))
+	reqPost, _ := http.NewRequest("POST", "/", strings.NewReader(link))
 
 	responsePost := executeRequest(reqPost, s)
 	shortLink := responsePost.Body.String()
