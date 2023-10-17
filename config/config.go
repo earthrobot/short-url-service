@@ -7,7 +7,7 @@ import (
 
 type Config struct {
 	AppHost string
-	UrlHost string
+	URLHost string
 }
 
 var ConfSet Config
@@ -16,7 +16,7 @@ func Load() {
 
 	// дефолтные значения
 	ConfSet.AppHost = "localhost:8080"
-	ConfSet.UrlHost = "http://localhost:8080"
+	ConfSet.URLHost = "http://localhost:8080"
 
 	// парсим флаги
 	appHostFlag := flag.String("a", "localhost:8080", "Host for the app")
@@ -31,9 +31,9 @@ func Load() {
 	}
 
 	if *urlHostFlag != "" {
-		ConfSet.UrlHost = *urlHostFlag
+		ConfSet.URLHost = *urlHostFlag
 	} else if os.Getenv("BASE_URL") != "" {
-		ConfSet.UrlHost = os.Getenv("BASE_URL")
+		ConfSet.URLHost = os.Getenv("BASE_URL")
 	}
 
 }

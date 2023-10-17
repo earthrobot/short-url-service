@@ -45,7 +45,7 @@ func (s *Server) createShortLinkHandler(w http.ResponseWriter, r *http.Request) 
 	s.DB.Set(shortLink, link)
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
-	returnLink := config.ConfSet.UrlHost + "/" + shortLink
+	returnLink := config.ConfSet.URLHost + "/" + shortLink
 	w.Write([]byte(returnLink))
 }
 
