@@ -5,57 +5,66 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
+
+// executeRequest, creates a new ResponseRecorder
+// then executes the request by calling ServeHTTP in the router
+// after which the handler writes the response to the response recorder
+// which we can then inspect.
+func executeRequest(req *http.Request, s *Server) *httptest.ResponseRecorder {
+	rr := httptest.NewRecorder()
+	s.Router.ServeHTTP(rr, req)
+
+	return rr
+}
+
+// checkResponseCode is a simple utility to check the response code
+// of the response
+func checkResponseCode(t *testing.T, expected, actual int) {
+	if expected != actual {
+		t.Errorf("Expected response code %d. Got %d\n", expected, actual)
+	}
+}
 
 func TestCreateShortLinkHandler(t *testing.T) {
 	link := "https://ya.ru"
-	request, err := http.NewRequest("POST", "/", strings.NewReader(link))
-	if err != nil {
-		t.Fatal(err)
-	}
 
-	recorder := httptest.NewRecorder()
+	s := CreateNewServer()
 
-	createShortLinkHandler(recorder, request)
+	s.MountHandlers()
 
-	if status := recorder.Code; status != http.StatusCreated {
-		t.Errorf("Create Short Link Handler returned wrong status code: got %v expected %v", status, http.StatusCreated)
-	}
+	req, _ := http.NewRequest("POST", "/", strings.NewReader(link))
 
-	contentType := recorder.Header().Get("Content-Type")
-	if contentType != "text/plain; charset=utf-8" {
-		t.Errorf("Create Short Link Handler returned wrong Content-Type header: got %v want %v", contentType, "text/plain; charset=utf-8")
-	}
+	response := executeRequest(req, s)
 
-	if recorder.Body.Len() == 0 {
-		t.Errorf("Create Short Link Handler returned an empty response body, but expected some content")
-	}
+	checkResponseCode(t, http.StatusCreated, response.Code)
+
+	require.Equal(t, "text/plain; charset=utf-8", response.Header().Get("Content-Type"))
+
+	require.NotEqual(t, 0, response.Body.Len())
 }
 
 func TestGetOriginalLinkHandler(t *testing.T) {
 	link := "https://ya.ru"
-	requestPost, err := http.NewRequest("POST", "/", strings.NewReader(link))
-	if err != nil {
-		t.Fatal(err)
-	}
-	recorderPost := httptest.NewRecorder()
-	createShortLinkHandler(recorderPost, requestPost)
 
-	shortLink := recorderPost.Body.String()
-	requestGet, err := http.NewRequest("GET", shortLink, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	recorderGet := httptest.NewRecorder()
-	getOriginalLinkHandler(recorderGet, requestGet)
+	s := CreateNewServer()
 
-	if status := recorderGet.Code; status != 307 {
-		t.Errorf("Get Original Link Handler returned wrong status code: got %v expected %v", status, 307)
-	}
+	s.MountHandlers()
 
-	location := recorderGet.Header().Get("Location")
+	reqPost, _ := http.NewRequest("POST", "http://localhost:8080/", strings.NewReader(link))
+
+	responsePost := executeRequest(reqPost, s)
+	shortLink := responsePost.Body.String()
+
+	reqGet, _ := http.NewRequest("GET", shortLink, nil)
+	responseGet := executeRequest(reqGet, s)
+
+	checkResponseCode(t, http.StatusTemporaryRedirect, responseGet.Code)
+
+	location := responseGet.Header().Get("Location")
 	if location != link {
 		t.Errorf("Get Original Link Handler returned wrong Location header: got %v want %v", location, link)
 	}
-
 }

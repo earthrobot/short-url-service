@@ -6,7 +6,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 type DataStorage struct {
@@ -28,9 +29,7 @@ func (ds *DataStorage) Get(key string) (string, bool) {
 	return value, exists
 }
 
-var dataStorage = NewDataStorage()
-
-func createShortLinkHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) createShortLinkHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Failed to read request body", http.StatusBadRequest)
@@ -42,17 +41,17 @@ func createShortLinkHandler(w http.ResponseWriter, r *http.Request) {
 	hash := sha256.Sum256([]byte(link))
 	shortLink := fmt.Sprintf("%x", hash)
 
-	dataStorage.Set(shortLink, link)
+	s.Db.Set(shortLink, link)
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
 	returnLink := "http://localhost:8080/" + shortLink
 	w.Write([]byte(returnLink))
 }
 
-func getOriginalLinkHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) getOriginalLinkHandler(w http.ResponseWriter, r *http.Request) {
 	linkHash := chi.URLParam(r, "linkHash")
 
-	link, ok := dataStorage.Get(linkHash)
+	link, ok := s.Db.Get(linkHash)
 	if !ok {
 		http.Error(w, "URL not found", http.StatusNotFound)
 		return
@@ -63,13 +62,30 @@ func getOriginalLinkHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	r := chi.NewRouter()
+	s := CreateNewServer()
 
-	r.Post("/", createShortLinkHandler)
-	r.Get("/{linkHash}", getOriginalLinkHandler)
+	s.MountHandlers()
 
-	err := http.ListenAndServe(":8080", r)
+	err := http.ListenAndServe(":8080", s.Router)
 	if err != nil {
 		panic(err)
 	}
+}
+
+type Server struct {
+	Router *chi.Mux
+	Db     *DataStorage
+}
+
+func CreateNewServer() *Server {
+	s := &Server{}
+	s.Router = chi.NewRouter()
+	s.Db = NewDataStorage()
+	return s
+}
+
+func (s *Server) MountHandlers() {
+	s.Router.Use(middleware.Logger)
+	s.Router.Post("/", s.createShortLinkHandler)
+	s.Router.Get("/{linkHash}", s.getOriginalLinkHandler)
 }
