@@ -41,7 +41,7 @@ func (s *Server) createShortLinkHandler(w http.ResponseWriter, r *http.Request) 
 	hash := sha256.Sum256([]byte(link))
 	shortLink := fmt.Sprintf("%x", hash)
 
-	s.Db.Set(shortLink, link)
+	s.DB.Set(shortLink, link)
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
 	returnLink := "http://localhost:8080/" + shortLink
@@ -51,7 +51,7 @@ func (s *Server) createShortLinkHandler(w http.ResponseWriter, r *http.Request) 
 func (s *Server) getOriginalLinkHandler(w http.ResponseWriter, r *http.Request) {
 	linkHash := chi.URLParam(r, "linkHash")
 
-	link, ok := s.Db.Get(linkHash)
+	link, ok := s.DB.Get(linkHash)
 	if !ok {
 		http.Error(w, "URL not found", http.StatusNotFound)
 		return
@@ -74,13 +74,13 @@ func main() {
 
 type Server struct {
 	Router *chi.Mux
-	Db     *DataStorage
+	DB     *DataStorage
 }
 
 func CreateNewServer() *Server {
 	s := &Server{}
 	s.Router = chi.NewRouter()
-	s.Db = NewDataStorage()
+	s.DB = NewDataStorage()
 	return s
 }
 
