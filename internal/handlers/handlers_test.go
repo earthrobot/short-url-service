@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"net/http"
@@ -6,22 +6,30 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/earthrobot/short-url-service/internal/server"
 	"github.com/stretchr/testify/require"
 )
 
-// executeRequest, creates a new ResponseRecorder
-// then executes the request by calling ServeHTTP in the router
-// after which the handler writes the response to the response recorder
-// which we can then inspect.
-func executeRequest(req *http.Request, s *Server) *httptest.ResponseRecorder {
+type mockStorage struct {
+	data map[string]string
+}
+
+func (m *mockStorage) Set(key, value string) {
+	m.data[key] = value
+}
+
+func (m *mockStorage) Get(key string) (string, bool) {
+	value, exists := m.data[key]
+	return value, exists
+}
+
+func executeRequest(req *http.Request, s *server.Server) *httptest.ResponseRecorder {
 	rr := httptest.NewRecorder()
 	s.Router.ServeHTTP(rr, req)
 
 	return rr
 }
 
-// checkResponseCode is a simple utility to check the response code
-// of the response
 func checkResponseCode(t *testing.T, expected, actual int) {
 	if expected != actual {
 		t.Errorf("Expected response code %d. Got %d\n", expected, actual)
@@ -31,30 +39,30 @@ func checkResponseCode(t *testing.T, expected, actual int) {
 func TestCreateShortLinkHandler(t *testing.T) {
 	link := "https://ya.ru"
 
-	s := CreateNewServer()
+	mockDB := &mockStorage{
+		data: make(map[string]string),
+	}
 
-	s.MountHandlers()
+	handler := NewHandler(mockDB)
+	s := server.NewServer(handler)
 
 	req, _ := http.NewRequest("POST", "/", strings.NewReader(link))
-
 	response := executeRequest(req, s)
 
 	checkResponseCode(t, http.StatusCreated, response.Code)
-
 	require.Equal(t, "text/plain; charset=utf-8", response.Header().Get("Content-Type"))
-
 	require.NotEqual(t, 0, response.Body.Len())
 }
 
 func TestGetOriginalLinkHandler(t *testing.T) {
 	link := "https://ya.ru"
 
-	s := CreateNewServer()
-
-	s.MountHandlers()
+	mockDB := &mockStorage{
+		data: make(map[string]string),
+	}
+	s := server.NewServer(mockDB)
 
 	reqPost, _ := http.NewRequest("POST", "/", strings.NewReader(link))
-
 	responsePost := executeRequest(reqPost, s)
 	shortLink := responsePost.Body.String()
 
