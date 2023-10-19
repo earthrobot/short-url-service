@@ -1,12 +1,15 @@
 package handlers
 
 import (
+	"fmt"
+	"github.com/earthrobot/short-url-service/internal/storage"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
-	"github.com/earthrobot/short-url-service/internal/server"
 	"github.com/stretchr/testify/require"
 )
 
@@ -23,33 +26,43 @@ func (m *mockStorage) Get(key string) (string, bool) {
 	return value, exists
 }
 
-func executeRequest(req *http.Request, s *server.Server) *httptest.ResponseRecorder {
+func executeRequest(req *http.Request, mux *chi.Mux) *httptest.ResponseRecorder {
 	rr := httptest.NewRecorder()
-	s.Router.ServeHTTP(rr, req)
+	mux.ServeHTTP(rr, req)
 
 	return rr
 }
 
-func checkResponseCode(t *testing.T, expected, actual int) {
-	if expected != actual {
-		t.Errorf("Expected response code %d. Got %d\n", expected, actual)
-	}
-}
+//
+//func checkResponseCode(t *testing.T, expected, actual int) {
+//	if expected != actual {
+//		t.Errorf("Expected response code %d. Got %d\n", expected, actual)
+//	}
+//}
 
 func TestCreateShortLinkHandler(t *testing.T) {
 	link := "https://ya.ru"
 
-	mockDB := &mockStorage{
-		data: make(map[string]string),
-	}
+	//mockDB := &mockStorage{
+	//	data: make(map[string]string),
+	//}
 
-	handler := NewHandler(mockDB)
-	s := server.NewServer(handler)
+	store := storage.NewInMemoryStorage()
+	handler := NewHandler(store)
+
+	router := chi.NewRouter()
+	router.Use(middleware.Logger)
+	router.Post("/", handler.CreateShortLinkHandler)
+	router.Get("/{linkHash}", handler.GetOriginalLinkHandler)
 
 	req, _ := http.NewRequest("POST", "/", strings.NewReader(link))
-	response := executeRequest(req, s)
+	response := executeRequest(req, router)
 
-	checkResponseCode(t, http.StatusCreated, response.Code)
+	if http.StatusCreated != response.Code {
+		t.Errorf("Expected response code %d. Got %d\n",
+			http.StatusCreated, response.Code)
+	}
+
 	require.Equal(t, "text/plain; charset=utf-8", response.Header().Get("Content-Type"))
 	require.NotEqual(t, 0, response.Body.Len())
 }
@@ -57,19 +70,33 @@ func TestCreateShortLinkHandler(t *testing.T) {
 func TestGetOriginalLinkHandler(t *testing.T) {
 	link := "https://ya.ru"
 
-	mockDB := &mockStorage{
-		data: make(map[string]string),
-	}
-	s := server.NewServer(mockDB)
+	//mockDB := &mockStorage{
+	//	data: make(map[string]string),
+	//}
+
+	store := storage.NewInMemoryStorage()
+	handler := NewHandler(store)
+
+	router := chi.NewRouter()
+	router.Use(middleware.Logger)
+	router.Post("/", handler.CreateShortLinkHandler)
 
 	reqPost, _ := http.NewRequest("POST", "/", strings.NewReader(link))
-	responsePost := executeRequest(reqPost, s)
+
+	responsePost := executeRequest(reqPost, router)
 	shortLink := responsePost.Body.String()
 
-	reqGet, _ := http.NewRequest("GET", shortLink, nil)
-	responseGet := executeRequest(reqGet, s)
+	println("shortLink:", shortLink)
+	fullLink := fmt.Sprintf("http://localhost:8080%s", shortLink)
+	println("fullLink:", fullLink)
 
-	checkResponseCode(t, http.StatusTemporaryRedirect, responseGet.Code)
+	reqGet, _ := http.NewRequest("GET", fullLink, nil)
+	responseGet := executeRequest(reqGet, router)
+
+	if http.StatusTemporaryRedirect != responseGet.Code {
+		t.Errorf("Expected response code %d. Got %d\n",
+			http.StatusTemporaryRedirect, responseGet.Code)
+	}
 
 	location := responseGet.Header().Get("Location")
 	if location != link {

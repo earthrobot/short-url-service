@@ -11,9 +11,10 @@ import (
 
 func main() {
 	config.Load()
-	storage := storage.NewInMemoryStorage()
-	handler := handlers.NewHandler(storage)
+	store := storage.NewInMemoryStorage()
+	handler := handlers.NewHandler(store)
 	s := server.NewServer(handler)
+
 	err := http.ListenAndServe(config.ConfSet.AppHost, s.Router)
 	if err != nil {
 		panic(err)

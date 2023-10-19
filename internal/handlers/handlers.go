@@ -12,10 +12,10 @@ import (
 )
 
 type Handlers struct {
-	DB storage.DataStorage
+	DB *storage.InMemoryStorage
 }
 
-func NewHandler(db storage.DataStorage) *Handlers {
+func NewHandler(db *storage.InMemoryStorage) *Handlers {
 	return &Handlers{DB: db}
 }
 
