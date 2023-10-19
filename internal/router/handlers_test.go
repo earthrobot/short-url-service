@@ -1,4 +1,4 @@
-package main
+package router
 
 import (
 	"net/http"
@@ -9,19 +9,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// executeRequest, creates a new ResponseRecorder
-// then executes the request by calling ServeHTTP in the router
-// after which the handler writes the response to the response recorder
-// which we can then inspect.
-func executeRequest(req *http.Request, s *Server) *httptest.ResponseRecorder {
+func executeRequest(req *http.Request, rtr *Router) *httptest.ResponseRecorder {
 	rr := httptest.NewRecorder()
-	s.Router.ServeHTTP(rr, req)
+	rtr.Router.ServeHTTP(rr, req)
 
 	return rr
 }
 
-// checkResponseCode is a simple utility to check the response code
-// of the response
 func checkResponseCode(t *testing.T, expected, actual int) {
 	if expected != actual {
 		t.Errorf("Expected response code %d. Got %d\n", expected, actual)
@@ -31,13 +25,11 @@ func checkResponseCode(t *testing.T, expected, actual int) {
 func TestCreateShortLinkHandler(t *testing.T) {
 	link := "https://ya.ru"
 
-	s := CreateNewServer()
-
-	s.MountHandlers()
+	rtr := NewRouter()
 
 	req, _ := http.NewRequest("POST", "/", strings.NewReader(link))
 
-	response := executeRequest(req, s)
+	response := executeRequest(req, rtr)
 
 	checkResponseCode(t, http.StatusCreated, response.Code)
 
@@ -49,17 +41,15 @@ func TestCreateShortLinkHandler(t *testing.T) {
 func TestGetOriginalLinkHandler(t *testing.T) {
 	link := "https://ya.ru"
 
-	s := CreateNewServer()
-
-	s.MountHandlers()
+	rtr := NewRouter()
 
 	reqPost, _ := http.NewRequest("POST", "/", strings.NewReader(link))
 
-	responsePost := executeRequest(reqPost, s)
+	responsePost := executeRequest(reqPost, rtr)
 	shortLink := responsePost.Body.String()
 
 	reqGet, _ := http.NewRequest("GET", shortLink, nil)
-	responseGet := executeRequest(reqGet, s)
+	responseGet := executeRequest(reqGet, rtr)
 
 	checkResponseCode(t, http.StatusTemporaryRedirect, responseGet.Code)
 
