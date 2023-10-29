@@ -20,7 +20,7 @@ func NewRouter() *Router {
 	s.Router.Use(logger.RequestLogger)
 	s.Router.Post("/", h.createShortLinkHandler)
 	s.Router.Get("/{linkHash}", h.getOriginalLinkHandler)
-	s.Router.Post("/api/shorten", h.createShortLinkApiHandler)
+	s.Router.Post("/api/shorten", h.createShortLinkAPIHandler)
 
 	return s
 }

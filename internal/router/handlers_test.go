@@ -66,9 +66,9 @@ func TestCreateShortLinkApiHandler(t *testing.T) {
 
 	rtr := NewRouter()
 
-	shortenUrlReq, _ := ffjson.Marshal(&models.ShortenRequest{Url: link})
+	shortenURLReq, _ := ffjson.Marshal(&models.ShortenRequest{URL: link})
 
-	req, _ := http.NewRequest("POST", "/api/shorten", strings.NewReader(string(shortenUrlReq)))
+	req, _ := http.NewRequest("POST", "/api/shorten", strings.NewReader(string(shortenURLReq)))
 
 	response := executeRequest(req, rtr)
 

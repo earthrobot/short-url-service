@@ -51,7 +51,7 @@ func (h *Handlers) getOriginalLinkHandler(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
-func (h *Handlers) createShortLinkApiHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) createShortLinkAPIHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Failed to read request body", http.StatusBadRequest)
@@ -66,7 +66,7 @@ func (h *Handlers) createShortLinkApiHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	link := sr.Url
+	link := sr.URL
 	hash := sha256.Sum256([]byte(link))
 	shortLink := fmt.Sprintf("%x", hash)
 
