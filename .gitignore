@@ -24,4 +24,4 @@ vendor/
 
 
 # logfile
-cmd/shortener/requests.log
+requests.log

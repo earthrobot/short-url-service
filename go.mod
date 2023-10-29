@@ -4,6 +4,7 @@ go 1.21.0
 
 require (
 	github.com/go-chi/chi/v5 v5.0.10
+	github.com/pquerna/ffjson v0.0.0-20190930134022-aa0246cd15f7
 	github.com/stretchr/testify v1.8.4
 	go.uber.org/zap v1.26.0
 )

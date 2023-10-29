@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/earthrobot/short-url-service/internal/models"
+	"github.com/pquerna/ffjson/ffjson"
 	"github.com/stretchr/testify/require"
 )
 
@@ -57,4 +59,22 @@ func TestGetOriginalLinkHandler(t *testing.T) {
 	if location != link {
 		t.Errorf("Get Original Link Handler returned wrong Location header: got %v want %v", location, link)
 	}
+}
+
+func TestCreateShortLinkApiHandler(t *testing.T) {
+	link := "https://ya.ru"
+
+	rtr := NewRouter()
+
+	shortenUrlReq, _ := ffjson.Marshal(&models.ShortenRequest{Url: link})
+
+	req, _ := http.NewRequest("POST", "/api/shorten", strings.NewReader(string(shortenUrlReq)))
+
+	response := executeRequest(req, rtr)
+
+	checkResponseCode(t, http.StatusCreated, response.Code)
+
+	require.Equal(t, "application/json", response.Header().Get("Content-Type"))
+
+	require.NotEqual(t, 0, response.Body.Len())
 }
