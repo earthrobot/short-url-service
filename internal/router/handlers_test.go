@@ -6,10 +6,17 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/earthrobot/short-url-service/config"
 	"github.com/earthrobot/short-url-service/internal/models"
+	"github.com/earthrobot/short-url-service/internal/storage"
 	"github.com/pquerna/ffjson/ffjson"
 	"github.com/stretchr/testify/require"
 )
+
+func newTestDB() *storage.InMemoryStorage {
+	db, _ := storage.NewInMemoryStorage(config.ConfSet.FileStoragePath)
+	return db
+}
 
 func executeRequest(req *http.Request, rtr *Router) *httptest.ResponseRecorder {
 	rr := httptest.NewRecorder()
@@ -27,7 +34,7 @@ func checkResponseCode(t *testing.T, expected, actual int) {
 func TestCreateShortLinkHandler(t *testing.T) {
 	link := "https://ya.ru"
 
-	rtr := NewRouter()
+	rtr := NewRouter(newTestDB())
 
 	req, _ := http.NewRequest("POST", "/", strings.NewReader(link))
 
@@ -43,7 +50,7 @@ func TestCreateShortLinkHandler(t *testing.T) {
 func TestGetOriginalLinkHandler(t *testing.T) {
 	link := "https://ya.ru"
 
-	rtr := NewRouter()
+	rtr := NewRouter(newTestDB())
 
 	reqPost, _ := http.NewRequest("POST", "/", strings.NewReader(link))
 
@@ -64,7 +71,7 @@ func TestGetOriginalLinkHandler(t *testing.T) {
 func TestCreateShortLinkApiHandler(t *testing.T) {
 	link := "https://ya.ru"
 
-	rtr := NewRouter()
+	rtr := NewRouter(newTestDB())
 
 	shortenURLReq, _ := ffjson.Marshal(&models.ShortenRequest{URL: link})
 
