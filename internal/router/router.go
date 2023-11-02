@@ -11,10 +11,9 @@ type Router struct {
 	Router *chi.Mux
 }
 
-func NewRouter() *Router {
+func NewRouter(db *storage.InMemoryStorage) *Router {
 	s := &Router{}
 	s.Router = chi.NewRouter()
-	db := storage.NewInMemoryStorage()
 	h := NewHandler(db)
 
 	logger.Initialize()
