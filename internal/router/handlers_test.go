@@ -6,8 +6,17 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/earthrobot/short-url-service/config"
+	"github.com/earthrobot/short-url-service/internal/models"
+	"github.com/earthrobot/short-url-service/internal/storage"
+	"github.com/pquerna/ffjson/ffjson"
 	"github.com/stretchr/testify/require"
 )
+
+func newTestDB() *storage.InMemoryStorage {
+	db, _ := storage.NewInMemoryStorage(config.ConfSet.FileStoragePath)
+	return db
+}
 
 func executeRequest(req *http.Request, rtr *Router) *httptest.ResponseRecorder {
 	rr := httptest.NewRecorder()
@@ -25,7 +34,7 @@ func checkResponseCode(t *testing.T, expected, actual int) {
 func TestCreateShortLinkHandler(t *testing.T) {
 	link := "https://ya.ru"
 
-	rtr := NewRouter()
+	rtr := NewRouter(newTestDB())
 
 	req, _ := http.NewRequest("POST", "/", strings.NewReader(link))
 
@@ -41,7 +50,7 @@ func TestCreateShortLinkHandler(t *testing.T) {
 func TestGetOriginalLinkHandler(t *testing.T) {
 	link := "https://ya.ru"
 
-	rtr := NewRouter()
+	rtr := NewRouter(newTestDB())
 
 	reqPost, _ := http.NewRequest("POST", "/", strings.NewReader(link))
 
@@ -57,4 +66,22 @@ func TestGetOriginalLinkHandler(t *testing.T) {
 	if location != link {
 		t.Errorf("Get Original Link Handler returned wrong Location header: got %v want %v", location, link)
 	}
+}
+
+func TestCreateShortLinkApiHandler(t *testing.T) {
+	link := "https://ya.ru"
+
+	rtr := NewRouter(newTestDB())
+
+	shortenURLReq, _ := ffjson.Marshal(&models.ShortenRequest{URL: link})
+
+	req, _ := http.NewRequest("POST", "/api/shorten", strings.NewReader(string(shortenURLReq)))
+
+	response := executeRequest(req, rtr)
+
+	checkResponseCode(t, http.StatusCreated, response.Code)
+
+	require.Equal(t, "application/json", response.Header().Get("Content-Type"))
+
+	require.NotEqual(t, 0, response.Body.Len())
 }
